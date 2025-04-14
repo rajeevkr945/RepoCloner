@@ -91,8 +91,8 @@ def clone_branches(repo_url, base_dir):
 
 if __name__ == "__main__":
     # Configuration
-    repo_url = "https://github.com/speethambaran/envitusIndoor.git"
-    base_dir = r"C:\Users\rajee\Downloads\EnvitusIndoor\envitusIndoor_branches"  # Use raw string for Windows path
+    repo_url = "REPO_URL"
+    base_dir = r"C:\Users\rajee\Downloads\REPO_URL_branches"  # Use raw string for Windows path
     
     try:
         clone_branches(repo_url, base_dir)
