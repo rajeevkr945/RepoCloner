@@ -3,12 +3,12 @@ import subprocess
 import shutil
 
 def run_command(command, cwd=None):
-    """Run a shell command and handle errors."""
+    """Run a shell command and return output or None on error."""
     try:
         result = subprocess.run(command, shell=True, check=True, text=True, capture_output=True, cwd=cwd)
         return result.stdout
     except subprocess.CalledProcessError as e:
-        print(f"Error running command '{command}': {e.stderr}")
+        print(f"Error running command '{command}' in {cwd or os.getcwd()}: {e.stderr}")
         return None
 
 def clone_branches(repo_url, base_dir):
@@ -20,19 +20,24 @@ def clone_branches(repo_url, base_dir):
     repo_name = repo_url.split('/')[-1].replace('.git', '')
     repo_dir = os.path.join(base_dir, repo_name)
     
-    # Clone the repository if it doesn't exist
-    if not os.path.exists(repo_dir):
-        print(f"Cloning repository to {repo_dir}...")
-        run_command(f"git clone {repo_url}", cwd=base_dir)
-    else:
-        print(f"Repository already exists at {repo_dir}, using it.")
+    # Remove existing repo_dir to start fresh (optional, comment out if unwanted)
+    if os.path.exists(repo_dir):
+        print(f"Removing existing {repo_dir} to start fresh...")
+        shutil.rmtree(repo_dir)
+    
+    # Clone the repository
+    print(f"Cloning repository to {repo_dir}...")
+    clone_result = run_command(f"git clone {repo_url} {repo_name}", cwd=base_dir)
+    if not clone_result:
+        print("Cloning failed, exiting.")
+        return
     
     # Change to the repo directory
     os.chdir(repo_dir)
     
-    # Fetch all remote branches
+    # Fetch all remote branches with force to ensure latest data
     print("Fetching all branches...")
-    run_command("git fetch origin")
+    run_command("git fetch origin --force")
     
     # Get list of remote branches (excluding HEAD)
     branches_output = run_command("git branch -r")
@@ -59,30 +64,35 @@ def clone_branches(repo_url, base_dir):
             print(f"Failed to clone for branch {branch}, skipping...")
             continue
         
-        # Verify branch exists before checkout
+        # Verify branch exists
         branch_check = run_command(f"git rev-parse --verify origin/{branch}")
         if not branch_check:
-            print(f"Branch {branch} does not exist or is invalid, skipping checkout...")
-            shutil.rmtree(branch_dir)  # Clean up failed clone
+            print(f"Branch {branch} does not exist or is invalid, removing folder...")
+            shutil.rmtree(branch_dir)
             continue
         
         # Checkout the branch
         checkout_result = run_command(f"git checkout {branch}", cwd=branch_dir)
         if checkout_result is None:
-            print(f"Failed to checkout branch {branch}, cleaning up...")
+            print(f"Failed to checkout branch {branch}, removing folder...")
             shutil.rmtree(branch_dir)
             continue
         
+        # Pull latest data to ensure all files are present
+        pull_result = run_command(f"git pull origin {branch}", cwd=branch_dir)
+        if pull_result is None:
+            print(f"Warning: Failed to pull latest data for {branch}, but continuing...")
+        
         # List files to verify content
-        files = run_command("dir", cwd=branch_dir)
-        print(f"Files in {branch_dir}:\n{files}")
+        files = run_command("dir /s", cwd=branch_dir)  # /s for recursive listing
+        print(f"Files in {branch_dir}:\n{files or 'No files found.'}")
     
     print("Done! All branches have been cloned to separate folders.")
 
 if __name__ == "__main__":
     # Configuration
     repo_url = "https://github.com/speethambaran/envitusIndoor.git"
-    base_dir = os.path.join(os.getcwd(), "envitusIndoor_branches")  # Folder to store all branch folders
+    base_dir = r"C:\Users\rajee\Downloads\EnvitusIndoor\envitusIndoor_branches"  # Use raw string for Windows path
     
     try:
         clone_branches(repo_url, base_dir)
