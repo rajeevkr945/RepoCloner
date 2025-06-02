@@ -88,4 +88,3 @@ MIT © 2024 - Free to use, modify, and share!
 *(Note: Replace placeholder links/images with real ones!)*  
 
 ---  
-This version keeps it **cool, concise, and functional** while avoiding infinite loops 😉. Let me know if you'd like tweaks!
